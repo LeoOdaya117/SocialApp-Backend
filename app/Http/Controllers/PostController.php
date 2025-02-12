@@ -5,8 +5,11 @@ namespace App\Http\Controllers;
 use App\Models\Post;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Log;
 use Carbon\Carbon;
-
+use App\Models\User;
+use App\Events\PostCreated;
 
 class PostController extends Controller
 {
@@ -47,20 +50,30 @@ class PostController extends Controller
     public function store(Request $request)
     {
         $request->validate([
-            'user_id'=> 'required|exists:users,id',
             'content' => 'required|string',
             'image' => 'nullable|file|image'
         ]);
 
-       $path = $request->file('image')->store('images','public');
+      
+       $path = $request->hasFile('image') ? $request->file('image')->store('images', 'public') : null;
 
         $post = Post::create([
-            'user_id' => $request->user_id,
+            'user_id' => Auth::user()->id,
             'content' => $request->content,
             'image' => $path,
             
 
         ]);
+
+    
+
+        // Broadcast event safely
+        try {
+            broadcast(new PostCreated($post))->toOthers();
+        } catch (\Exception $e) {
+            \Log::error('Broadcasting failed: ' . $e->getMessage());
+        }
+
 
         return response($post, 201);
     }
