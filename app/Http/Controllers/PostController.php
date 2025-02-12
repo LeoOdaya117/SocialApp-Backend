@@ -11,16 +11,25 @@ use Carbon\Carbon;
 use App\Models\User;
 use App\Events\PostCreated;
 
+use function Laravel\Prompts\select;
+
 class PostController extends Controller
 {
     /**
      * Display a listing of the resource.
      */
-    public function index()
+    public function index(Request $request)
     {
         $user = Auth::user(); // Get the currently authenticated user
+        $search = $request->query('q'); // Get search query from request
 
-        return Post::with(['user', 'likes', 'comments'])
+        $posts = Post::with(['user', 'likes', 'comments'])
+            ->when($search, function ($query, $search) {
+                return $query->where('content', 'LIKE', "%{$search}%")
+                            ->orWhereHas('user', function ($query) use ($search) {
+                                $query->where('name', 'LIKE', "%{$search}%");
+                            });
+            })
             ->orderBy('created_at', 'DESC')
             ->get()
             ->map(function ($post) use ($user) {
@@ -36,11 +45,14 @@ class PostController extends Controller
                     'image' => $post->image ? url(Storage::url($post->image)) : null,
                     'likes' => $post->likes->count(),
                     'comments' => $post->comments->count(),
-                    'likedByUser' => $user ? $post->likes->contains('user_id', $user->id) : false, // Check if user liked the post
+                    'likedByUser' => $user ? $post->likes->contains('user_id', $user->id) : false,
                     'created_at' => $post->created_at->diffForHumans(),
                 ];
             });
+
+        return response()->json($posts);
     }
+
 
 
     /**
@@ -117,4 +129,33 @@ class PostController extends Controller
         $post->delete();
         return response($post, 201);
     }
+
+
+    public function trendingPost()
+    {
+        $trendingPost = Post::select('id', 'user_id', 'content','created_at') // Ensure user_id is included
+            ->with(['user:id,name,avatar']) // Fetch only required user columns
+            ->withCount('likes')
+            ->orderBy('likes_count', 'DESC')
+            ->take(5)
+            ->get()
+            ->map(function ($post) {
+                return [
+                    'id'         => $post->id,
+                    'content'    => $post->content,
+                    'likes_count' => $post->likes_count,
+                    // 'created_at' => $post->created_at->diffForHumans(),
+                    'user'       => $post->user ? [
+                        'id'    => $post->user->id,
+                        'name'  => $post->user->name,
+                        'avatar' => $post->user->avatar 
+                            ? Storage::url($post->user->avatar)  // Convert avatar to URL
+                            : null, // Use default avatar if null
+                    ] : null,
+                ];
+            });
+
+        return response()->json($trendingPost, 201);
+    }
+
 }

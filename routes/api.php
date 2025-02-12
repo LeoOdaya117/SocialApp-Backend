@@ -21,5 +21,7 @@ Route::middleware('auth:sanctum')->group(function () {
 
     Route::get('/topuser', [UserController::class, 'topUser'])->name('user.topuser');
     Route::apiResource('friends', FriendShipController::class);
-    
+    Route::get('/trendingpost', [PostController::class, 'trendingPost'])->name('post.trending');
+
+    Route::get('/people', [UserController::class, 'index'])->name('people');
 });
