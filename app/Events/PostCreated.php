@@ -29,6 +29,7 @@ class PostCreated implements ShouldBroadcast
             'content' => $post->content,
             'image' => $post->image ? url(Storage::url($post->image)) : null, // ✅ Fix the image URL
             'likes' => $post->likes->count(),
+           
             'comments' => $post->comments->count(),
             'created_at' => $post->created_at->diffForHumans(),
         ];

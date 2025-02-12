@@ -4,6 +4,8 @@ namespace App\Http\Controllers;
 
 use App\Models\PostLike;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
+use App\Events\PostLikedEvent;
 
 class PostLikeController extends Controller
 {
@@ -26,9 +28,41 @@ class PostLikeController extends Controller
     /**
      * Store a newly created resource in storage.
      */
-    public function store(Request $request)
+    public function likePost(Request $request, $postId)
     {
-        //
+        $user = Auth::user();
+
+        // Check if the user has already liked the post
+        $existingLike = PostLike::where('post_id', $postId)->where('user_id', $user->id)->first();
+
+        if (!$existingLike) {
+            PostLike::create([
+                'post_id' => $postId,
+                'user_id' => $user->id,
+            ]);
+        }else{
+            $existingLike->delete();
+        }
+
+        // Count total likes for the post
+        $likesCount = PostLike::where('post_id', $postId)->count();
+
+        broadcast(new PostLikedEvent($postId, $likesCount));
+
+        return response()->json(['likes' => $likesCount]);
+    }
+
+    public function destroy($postId)
+    {
+        $user = Auth::user();
+
+        // Remove like if it exists
+        PostLike::where('post_id', $postId)->where('user_id', $user->id)->delete();
+
+        // Count total likes for the post
+        $likesCount = PostLike::where('post_id', $postId)->count();
+
+        return response()->json(['likes' => $likesCount]);
     }
 
     /**
@@ -55,11 +89,4 @@ class PostLikeController extends Controller
         //
     }
 
-    /**
-     * Remove the specified resource from storage.
-     */
-    public function destroy(PostLike $postLike)
-    {
-        //
-    }
 }
