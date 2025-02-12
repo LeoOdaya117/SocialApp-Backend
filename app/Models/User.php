@@ -62,4 +62,8 @@ class User extends Authenticatable
         return $this->hasMany(PostShare::class);
     }
     
+
+    public function friends(){
+        return $this->hasMany(FriendShip::class);
+    }
 }

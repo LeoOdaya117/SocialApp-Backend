@@ -4,6 +4,8 @@ namespace App\Http\Controllers;
 
 use App\Models\FriendShip;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Storage;
 
 class FriendShipController extends Controller
 {
@@ -12,8 +14,25 @@ class FriendShipController extends Controller
      */
     public function index()
     {
-        //
+        $user = Auth::user();
+    
+        $friends = FriendShip::with(['user:id,name,avatar'])
+            ->where('user_id', $user->id)
+            ->where('status', 'accepted')
+            ->get()
+            ->map(function ($friend) {
+                return [
+                    'id' => $friend->friend_id,
+                    'name'      => $friend->user->name,
+                    'avatar'    => $friend->user->avatar 
+                        ? Storage::url($friend->user->avatar) 
+                        : null,
+                ];
+            });
+    
+        return response()->json($friends);
     }
+    
 
     /**
      * Show the form for creating a new resource.

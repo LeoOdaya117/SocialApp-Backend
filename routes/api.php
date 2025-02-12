@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\FriendShipController;
 use App\Http\Controllers\PostLikeController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
@@ -19,5 +20,6 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/posts/{post}/like', [PostLikeController::class, 'likePost'])->name('posts.like');
 
     Route::get('/topuser', [UserController::class, 'topUser'])->name('user.topuser');
+    Route::apiResource('friends', FriendShipController::class);
     
 });
