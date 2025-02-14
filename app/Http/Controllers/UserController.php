@@ -2,11 +2,14 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\User;
+
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
+use App\Models\User;
+
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
+
 
 class UserController extends Controller
 {
@@ -62,26 +65,72 @@ class UserController extends Controller
     /**
      * Display the specified resource.
      */
-    public function show(User $user)
+    public function show(Request $request)
     {
-        //
+        return response()->json($request->user());
     }
+
 
     /**
      * Show the form for editing the specified resource.
      */
     public function edit(User $user)
     {
-        //
+       
     }
 
     /**
      * Update the specified resource in storage.
      */
-    public function update(Request $request, User $user)
+    public function update(Request $request)
     {
-        //
+        $user = Auth::user(); // Get the authenticated user
+    
+        // Validate input data
+        $request->validate([
+            'name' => 'required|string|max:255',
+            'email' => 'required|email|unique:users,email,' . $user->id,
+            'password' => 'nullable|min:6',
+            'avatar' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048', // Profile image
+        ]);
+    
+        // Update user details
+        $user->name = $request->name;
+        $user->email = $request->email;
+    
+        // Hash password if provided
+        if ($request->filled('password')) {
+            $user->password = bcrypt($request->password);
+        }
+    
+        // Handle avatar upload if provided
+        if ($request->hasFile('avatar')) {
+            // Delete old avatar if exists
+            if ($user->avatar) {
+                Storage::disk('public')->delete($user->avatar);
+            }
+    
+            // Store new avatar in storage/app/public/avatars
+            $path = $request->hasFile('avatar') ? $request->file('avatar')->store('images', 'public') : null;
+
+            $user->avatar =  $path ; // Save path as `storage/avatars/filename.jpg`
+        }
+    
+        $user->save();
+    
+        return response()->json([
+            'message' => 'User updated successfully',
+            'user' => [
+                'id' => $user->id,
+                'name' => $user->name,
+                'email' => $user->email,
+                'avatar' => $user->avatar ? asset($user->avatar) : null, // Returns full URL for the image
+            ]
+        ]);
     }
+
+
+
 
     /**
      * Remove the specified resource from storage.

@@ -22,7 +22,7 @@ class PostController extends Controller
     {
         $user = Auth::user(); // Get the currently authenticated user
         $search = $request->query('q'); // Get search query from request
-
+    
         $posts = Post::with(['user', 'likes', 'comments'])
             ->when($search, function ($query, $search) {
                 return $query->where('content', 'LIKE', "%{$search}%")
@@ -31,27 +31,30 @@ class PostController extends Controller
                             });
             })
             ->orderBy('created_at', 'DESC')
-            ->get()
-            ->map(function ($post) use ($user) {
-                return [
-                    'id' => $post->id,
-                    'user' => [
-                        'id' => optional($post->user)->id,
-                        'name' => optional($post->user)->name ?? 'Unknown User',
-                        'avatar' => optional($post->user)->avatar ? url(Storage::url($post->user->avatar)) : null,
-                    ],
-                    'user_id' => $post->user_id,
-                    'content' => $post->content,
-                    'image' => $post->image ? url(Storage::url($post->image)) : null,
-                    'likes' => $post->likes->count(),
-                    'comments' => $post->comments->count(),
-                    'likedByUser' => $user ? $post->likes->contains('user_id', $user->id) : false,
-                    'created_at' => $post->created_at->diffForHumans(),
-                ];
-            });
-
+            ->paginate(5);
+    
+        // Transform the paginated collection while keeping pagination structure
+        $posts->getCollection()->transform(function ($post) use ($user) {
+            return [
+                'id' => $post->id,
+                'user' => [
+                    'id' => optional($post->user)->id,
+                    'name' => optional($post->user)->name ?? 'Unknown User',
+                    'avatar' => optional($post->user)->avatar ? url(Storage::url($post->user->avatar)) : null,
+                ],
+                'user_id' => $post->user_id,
+                'content' => $post->content,
+                'image' => $post->image ? url(Storage::url($post->image)) : null,
+                'likes' => $post->likes->count(),
+                'comments' => $post->comments->count(),
+                'likedByUser' => $user ? $post->likes->contains('user_id', $user->id) : false,
+                'created_at' => $post->created_at->diffForHumans(),
+            ];
+        });
+    
         return response()->json($posts);
     }
+    
 
 
 
