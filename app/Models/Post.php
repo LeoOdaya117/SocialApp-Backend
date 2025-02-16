@@ -10,7 +10,7 @@ class Post extends Model
     protected $table = "posts";
 
 
-    protected $fillable = ['user_id','content','image'];
+    protected $fillable = ['user_id','content','image', 'privacy'];
 
     // Relationship: Each post belongs to a user
     public function user()

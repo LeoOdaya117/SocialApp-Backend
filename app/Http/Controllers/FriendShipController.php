@@ -47,7 +47,22 @@ class FriendShipController extends Controller
      */
     public function store(Request $request)
     {
-        //
+        $user = Auth::user();
+
+        $request->validate([
+            'friend_id' => 'required|exists:users,id',
+            'status' => 'required|in:accepted,pending,blocked', // Use 'in' for predefined values
+
+        ]);
+
+        $friendShip = FriendShip::create([
+            'user_id' => $user->id,
+            'friend_id' => $request->friend_id,
+            'status' => $request->status,
+        ]);
+
+        return response()->json($friendShip, 201);
+
     }
 
     /**
@@ -77,8 +92,25 @@ class FriendShipController extends Controller
     /**
      * Remove the specified resource from storage.
      */
-    public function destroy(FriendShip $friendShip)
+    public function destroy($id)
     {
-        //
+        $user = Auth::user();
+    
+        // Find the friendship where the user is involved
+        $friendship = FriendShip::where('user_id', $user->id)
+        ->where('friend_id', $id)
+        ->first();
+
+    
+        if (!$friendship) {
+            return response()->json(['message' => 'Friendship not found'], 404);
+        }
+    
+        $friendship->delete();
+    
+        return response()->json(['message' => 'Friend request removed successfully']);
     }
+    
+    
+
 }

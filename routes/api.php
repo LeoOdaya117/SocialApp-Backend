@@ -21,8 +21,11 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // Trending posts
     Route::get('/trendingpost', [PostController::class, 'trendingPost'])->name('post.trending');
+
+    Route::get('/user', [UserController::class, 'show']);
+    Route::put('/user/update', [UserController::class, 'update']);
+
+    Route::apiResource('/friendship',FriendShipController::class);
 });
 
-// User Profile Routes
-Route::middleware('auth:sanctum')->get('/user', [UserController::class, 'show']);
-Route::middleware('auth:sanctum')->post('/user/update', [UserController::class, 'update']);
+

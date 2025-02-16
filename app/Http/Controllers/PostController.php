@@ -24,6 +24,7 @@ class PostController extends Controller
         $search = $request->query('q'); // Get search query from request
     
         $posts = Post::with(['user', 'likes', 'comments'])
+            ->where('privacy', 'public')
             ->when($search, function ($query, $search) {
                 return $query->where('content', 'LIKE', "%{$search}%")
                             ->orWhereHas('user', function ($query) use ($search) {
@@ -73,16 +74,19 @@ class PostController extends Controller
     {
         $request->validate([
             'content' => 'required|string',
-            'image' => 'nullable|file|image'
+            'image' => 'nullable|file|image',
+            'privacy' => 'required'
         ]);
 
-      
-       $path = $request->hasFile('image') ? $request->file('image')->store('images', 'public') : null;
+        $sanitizedContent = strip_tags($request->content, '<p><br><strong><em>'); // Allow basic formatting
+
+        $path = $request->hasFile('image') ? $request->file('image')->store('images', 'public') : null;
 
         $post = Post::create([
             'user_id' => Auth::user()->id,
-            'content' => $request->content,
+            'content' => $sanitizedContent,
             'image' => $path,
+            'privacy' => $request->privacy
             
 
         ]);
@@ -152,7 +156,7 @@ class PostController extends Controller
                         'id'    => $post->user->id,
                         'name'  => $post->user->name,
                         'avatar' => $post->user->avatar 
-                            ? Storage::url($post->user->avatar)  // Convert avatar to URL
+                            ? url(Storage::url($post->user->avatar) ) // Convert avatar to URL
                             : null, // Use default avatar if null
                     ] : null,
                 ];

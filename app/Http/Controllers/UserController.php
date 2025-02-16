@@ -34,11 +34,11 @@ class UserController extends Controller
                 }
             ])
             ->addSelect([
-                'is_friend' => \DB::table('friendships')
+                'friendship_status' => \DB::table('friendships')
                     ->whereColumn('friendships.friend_id', 'users.id')
                     ->where('friendships.user_id', $authUserId)
-                    ->where('friendships.status', 'accepted') // Check only accepted friendships
-                    ->selectRaw('COUNT(*) > 0') // Returns true if they are accepted friends
+                    ->select('friendships.status') // Select the status field
+                    ->limit(1) // Ensure only one status is returned
             ])
             ->where('name', 'LIKE', "%{$request->q}%")
             ->get();
@@ -67,7 +67,13 @@ class UserController extends Controller
      */
     public function show(Request $request)
     {
-        return response()->json($request->user());
+        return response()->json([
+            'id' => $request->user()->id,
+            'name' => $request->user()->name,
+            'email' => $request->user()->email,
+            'avatar' => $request->user()->avatar ? url(Storage::url($request->user()->avatar)) : null,
+            'cover' => $request->user()->cover ? url(Storage::url($request->user()->cover)) : null,
+        ]);
     }
 
 
@@ -147,7 +153,16 @@ class UserController extends Controller
         return $topUsers = User::withCount('posts')
             ->orderBy('posts_count', 'desc')
             ->take(5)
-            ->get();
+            ->get()
+            ->map(function($topUsers){
+                return [
+                    'id' => $topUsers->id,
+                    'name' => $topUsers->name,
+                    'avatar' => $topUsers->avatar ? url(Storage::url($topUsers->avatar)) : null,
+                    'posts_count' => $topUsers->posts_count
+                ];
+
+            });
 
 
        
