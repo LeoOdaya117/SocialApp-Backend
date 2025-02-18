@@ -23,7 +23,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/trendingpost', [PostController::class, 'trendingPost'])->name('post.trending');
 
     Route::get('/user', [UserController::class, 'show']);
-    Route::put('/user/update', [UserController::class, 'update']);
+    Route::post('/user/update', [UserController::class, 'update']);
 
     Route::apiResource('/friendship',FriendShipController::class);
 });
